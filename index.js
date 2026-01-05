@@ -2,7 +2,7 @@ require("dotenv").config();
 const { Client, GatewayIntentBits } = require("discord.js");
 const OpenAI = require("openai");
 
-// Discord Client
+// Discord client
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
@@ -11,7 +11,7 @@ const client = new Client({
   ]
 });
 
-// OpenAI Client
+// OpenAI client
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
@@ -21,25 +21,20 @@ client.once("ready", () => {
 });
 
 client.on("messageCreate", async (message) => {
-  // Bỏ qua bot khác
   if (message.author.bot) return;
-
-  // Chỉ phản hồi khi bắt đầu bằng !chat
   if (!message.content.startsWith("!chat ")) return;
 
-  const userPrompt = message.content.slice(6);
-
+  const userPrompt = message.content.slice(6).trim();
   if (!userPrompt) {
-    return message.reply("❗ Bạn chưa nhập câu hỏi.");
+    return message.reply("❗ Bạn chưa nhập nội dung.");
   }
 
   try {
-    // Gửi trạng thái đang gõ
     await message.channel.sendTyping();
 
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [
+    const response = await openai.responses.create({
+      model: "gpt-4.1-mini",
+      input: [
         {
           role: "system",
           content: "Bạn là một trợ lý AI thân thiện, trả lời bằng tiếng Việt."
@@ -48,18 +43,16 @@ client.on("messageCreate", async (message) => {
           role: "user",
           content: userPrompt
         }
-      ],
-      max_tokens: 500
+      ]
     });
 
-    const reply = response.choices[0].message.content;
+    const reply = response.output_text;
 
-    await message.reply(reply);
+    await message.reply(reply || "❌ Không nhận được phản hồi từ AI.");
   } catch (error) {
-    console.error(error);
-    message.reply("❌ Có lỗi xảy ra khi gọi ChatGPT.");
+    console.error("OPENAI ERROR:", error);
+    await message.reply("❌ Có lỗi xảy ra khi gọi ChatGPT.");
   }
 });
 
-// Login bot
 client.login(process.env.DISCORD_TOKEN);
